@@ -96,7 +96,7 @@ command :open do |c|
         sim = old_sims[old_sims.keys.last]
         DebugUtils.result_line "\niPad/iPhone Simulator - #{sim[:name]}"
         DebugUtils.result_line "  Path - #{sim[:path]}"
-        `open "#{sim[:path]}"`
+        `open "#{sim[:path]}/#{$old_simulators_apps}"`
       end # else
 
     # NEW simulators
