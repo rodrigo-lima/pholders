@@ -41,7 +41,7 @@ command :list do |c|
       DebugUtils.output_line "OLD XCODE Simulators root path : #{$old_simulators_home}"
       old_sims = PholdersUtils.old_simulators $old_simulators_home+"/*"
       old_sims.each { |k,v|
-        DebugUtils.result_line "iPad/iPhone Simulator - #{v[:name]}"
+        DebugUtils.result_line "\niPad/iPhone Simulator - #{v[:name]}"
         DebugUtils.result_line "  Path - #{v[:path]}"
       }
       DebugUtils.output_line "===\n"
@@ -50,45 +50,77 @@ command :list do |c|
     # NEW simulators
     if options.xcode == :xcode6 or options.xcode == :both
       DebugUtils.output_line "NEW XCODE Simulators root path : #{$new_simulators_home}"
-      new_sims = PholdersUtils.list_sorted $new_simulators_home+"/*"      
-      new_sims.each { |e| 
-        PholdersUtils.display_device_info e 
+      new_sims = PholdersUtils.new_simulators $new_simulators_home+"/*", options.includeEmpty      
+      new_sims.each { |k,v| 
+        DebugUtils.result_line "\n#{v[:type]} Simulator - #{v[:name]}"
+        DebugUtils.result_line "  Path - #{v[:path]}"
+        if v[:apps].keys.count > 0
+          DebugUtils.result_line "  Apps:" 
+          v[:apps].each { |ka,va|
+            DebugUtils.result_line "    BundleId: #{ka}"
+            DebugUtils.result_line "    SandBox Path: #{va['compatibilityInfo']['sandboxPath']}" if (va['compatibilityInfo'])
+          }
+        else 
+          DebugUtils.result_line "  NO Apps"
+        end
       }
       DebugUtils.output_line "===\n"
     end
-  end
-end
+  end #c.action
+end #list command
 
+command :open do |c|
+  c.syntax = 'pholders open [options]'
+  c.description = 'Opens simulator folder were the last/current App was running'
+  c.option '--xcode [XCODE_TYPE]', [:xcode5, :xcode6], 'Which Xcode simulator to open: xcode5, xcode6?'
+  c.action do |args, options|
+    options.default :xcode => :xcode6
 
-  # # Dir.foreach(".") {|x| puts "Got #{x}" }
-  # puts "\n======================"
-  # puts "found OLD simulators...."
-  # puts "OLD SIMS: #{$old_simulators_home}"
-  # old_sims = list_sorted $old_simulators_home+"/*"
+    puts "------------"
+    DebugUtils.output_line "Open Simulator Folder"
+    DebugUtils.output_line "  - #{options.xcode}"
+    puts "------------\n"
 
-  # puts " ---- "
-  # old_sims.each { |e| list_sorted e+$old_simulators_apps+"/*" }
-  # puts " ---- "
+    # OLD simulators
+    if options.xcode == :xcode5
+      DebugUtils.output_line "OLD XCODE Simulators root path : #{$old_simulators_home}"
+      old_sims = PholdersUtils.old_simulators $old_simulators_home+"/*"
+      if old_sims == nil or old_sims.keys.count == 0
+        if File.exist? $old_simulators_home
+          DebugUtils.result_line "Sorry, could not find any Xcode 5 Apps. Opening the root folder instead."
+          `open "#{$old_simulators_home}"`
+        else
+          DebugUtils.result_line "Sorry, could not find any Xcode 5 Apps or Folder"
+        end
+      else
+        sim = old_sims[old_sims.keys.last]
+        DebugUtils.result_line "\niPad/iPhone Simulator - #{sim[:name]}"
+        DebugUtils.result_line "  Path - #{sim[:path]}"
+        `open "#{sim[:path]}"`
+      end # else
 
-  # puts "\n\n======================"
-  # puts "\n======================"
-  # puts "\nfound NEW simulators...."
-  # puts "NEW SIMS: #{$new_simulators_home}"
-  # new_sims = list_sorted $new_simulators_home+"/*"
-  # new_sims.each { |e| 
-  #     display_device_info e 
-  # }
-  #     choice = choose("Favorite language?", :ruby, :perl, :js)
-  #     puts "good choice == #{choice}"
+    # NEW simulators
+    else
+      DebugUtils.output_line "NEW XCODE Simulators root path : #{$new_simulators_home}"
+      new_sims = PholdersUtils.new_simulators $new_simulators_home+"/*", false
+      if new_sims == nil or new_sims.keys.count == 0
+        DebugUtils.result_line "Sorry, could not find any Xcode 6 Apps. Opening the root folder instead."
+        `open "#{$new_simulators_home}"`
+      else
+        sim = new_sims[new_sims.keys.last]
+        apps = sim[:apps]
+        last_app = apps[apps.keys.last]
+        DebugUtils.result_line "\n#{sim[:type]} Simulator - #{sim[:name]}"
+        DebugUtils.result_line "  Last App:"
+        DebugUtils.result_line "    BundleId: #{apps.keys.last}"
+        if last_app['compatibilityInfo']
+          DebugUtils.result_line "    SandBox Path: #{last_app['compatibilityInfo']['sandboxPath']}"
+          `open "#{last_app['compatibilityInfo']['sandboxPath']}"`
+        else
+          DebugUtils.result_line "    Sorry, cannot open this App - no sandbox folder found"
+        end
 
-    
-  # command :bar do |c|
-  #   c.syntax = 'foobar bar [options]'
-  #   c.description = 'Display bar with optional prefix and suffix'
-  #   c.option '--prefix STRING', String, 'Adds a prefix to bar'
-  #   c.option '--suffix STRING', String, 'Adds a suffix to bar'
-  #   c.action do |args, options|
-  #     options.default :prefix => '(', :suffix => ')'
-  #     say "#{options.prefix}bar#{options.suffix}"
-  #   end
-
+      end #else no apps
+    end #else xcode
+  end #c.action
+end #open command
