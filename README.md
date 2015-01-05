@@ -47,27 +47,49 @@ To quickly open a Finder window to your App, just run:
 $ ./pholders.rb open
 ------------
 Open Simulator Folder
-  - xcode6
+XCODE - xcode6
+ARGS  - using default ["ipad"]
 ------------
 NEW XCODE Simulators root path : /Users/rolima/Library/Developer/CoreSimulator/Devices
 
-iPad Simulator - iPad Retina
-  Last App:
-    BundleId: com.mycompany.MyCoolApp
-    SandBox Path:
-/Users/rolima/Library/Developer/CoreSimulator/Devices/1C2F9CAA-117B-4909-ACCC-2AB70D2E8FEE/data/Containers/Data/Application/9B77FEB8-5784-48F1-82D7-1AC508AB7AF
+Opening Simulator with highest match for input arguments: ["ipad"]
+
+iPad Simulator - iPad Retina (iOS-8-1)
+! Could not pinpoint an specific App, so opening all Apps for this simulator, if possible... !
+
+    BundleId....: com.mycompany.CoolApp
+    SandBox Path: /Users/myUser/Library/Developer/CoreSimulator/Devices/123ABC-1111-2222-XXXX-ABCD/data/Containers/Data/Application/123ABC-1111-3333-XXXX-FFFF
+$ 
 
 $ --> Finder opens a new Window pointing to the directory above <--
 ```
 
-This will loop through all Apps you have installed and all Simulators (iPhone, iPad, resizable, etc) and, based on last modified time, launch Finder.
+**Open** also accepts arguments that will be used to find a better match when looping through all simulators.
+
+This way, you could specify the following: 
+
+- Open iPad 7 apps 
+```
+$ ./pholders.rb open ipad 7
+```
+
+- Open iPhone 8 apps 
+```
+$ ./pholders.rb open ipad 8
+```
+
+- Open apps with specific **BundleId** 
+```
+$ ./pholders.rb open my.company
+```
+
 
 TODO
 ----
 
-- more options for launching the App
-    + iPhone only
-    + iPad only
+- ~~more options for launching the App~~
+    + ~~iPhone only~~
+    + ~~iPad only~~
 - menu with all the Apps, so user can choose which one to open
 - more actions
     + reset -- cache-only, documents-only, preferences-only, combination of all 3
