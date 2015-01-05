@@ -51,6 +51,7 @@ module PholdersUtils
         end
 
         return device_folder, { :name => device['name'],
+                         :runtime => runtime,
                          :type => sym_type,
                          :path => device_folder,
                          :apps => sym_apps }
@@ -83,6 +84,22 @@ module PholdersUtils
             new_sims[k] = v if k and v
         }
         new_sims
+    end
+
+    def PholdersUtils.update_count (count_dictionary, key, bundleId, sandboxPath)
+        count_info = count_dictionary[key]
+        count_info = {} if count_info == nil
+
+        count_so_far = count_info[:count_so_far]
+        count_so_far = 0 if count_info == nil or count_info[:count_so_far] == nil
+        count_so_far += 1
+        count_info[:count_so_far] = count_so_far
+        count_info[:bundleId] = bundleId if count_info[:bundleId] == nil
+        count_info[:sandboxPath] = sandboxPath if count_info[:sandboxPath] == nil
+        count_dictionary[key] = count_info
+        DebugUtils.debug_line "COUNT_INFO  #{count_info}"
+
+        count_info
     end
 
 end

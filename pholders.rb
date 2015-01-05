@@ -18,6 +18,7 @@ $new_simulators_apps = "/data/Containers/Data/Application"
 # -------------------------------------------------------------
 program :version, '0.0.1'
 program :description, 'Finds iOS simulators folders and performs actions'
+default_command :list
 
 global_option('--verbose') { $verbose = true }
 
@@ -52,7 +53,7 @@ command :list do |c|
       DebugUtils.output_line "NEW XCODE Simulators root path : #{$new_simulators_home}"
       new_sims = PholdersUtils.new_simulators $new_simulators_home+"/*", options.includeEmpty      
       new_sims.each { |k,v| 
-        DebugUtils.result_line "\n#{v[:type]} Simulator - #{v[:name]}"
+        DebugUtils.result_line "\n#{v[:type]} Simulator - #{v[:name]} (#{v[:runtime]})"
         DebugUtils.result_line "  Path - #{v[:path]}"
         if v[:apps].keys.count > 0
           DebugUtils.result_line "  Apps:" 
@@ -78,7 +79,14 @@ command :open do |c|
 
     puts "------------"
     DebugUtils.output_line "Open Simulator Folder"
-    DebugUtils.output_line "  - #{options.xcode}"
+    DebugUtils.output_line "XCODE - #{options.xcode}"
+    if args == nil or args.count == 0
+      args = ['ipad'] 
+      DebugUtils.output_line "ARGS  - using default #{args}"
+    else
+      DebugUtils.output_line "ARGS  - #{args}"
+    end
+    DebugUtils.debug_line "OPTIONS  - #{options}"
     puts "------------\n"
 
     # OLD simulators
@@ -107,18 +115,63 @@ command :open do |c|
         DebugUtils.result_line "Sorry, could not find any Xcode 6 Apps. Opening the root folder instead."
         `open "#{$new_simulators_home}"`
       else
-        sim = new_sims[new_sims.keys.last]
-        apps = sim[:apps]
-        last_app = apps[apps.keys.last]
-        DebugUtils.result_line "\n#{sim[:type]} Simulator - #{sim[:name]}"
-        DebugUtils.result_line "  Last App:"
-        DebugUtils.result_line "    BundleId: #{apps.keys.last}"
-        if last_app['compatibilityInfo']
-          DebugUtils.result_line "    SandBox Path: #{last_app['compatibilityInfo']['sandboxPath']}"
-          `open "#{last_app['compatibilityInfo']['sandboxPath']}"`
-        else
-          DebugUtils.result_line "    Sorry, cannot open this App - no sandbox folder found"
-        end
+        possible_matches = {}
+        new_sims.each { |k,v| 
+          DebugUtils.debug_line "examining #{v[:type]} Simulator - #{v[:name]} (#{v[:runtime]})"
+          args.each { |a| 
+            v.each { |vk,vv|
+              DebugUtils.debug_line "examining ARGS #{a} = #{vk} => #{vv.class}"
+              if vk != :apps and vk != :path and vv.kind_of? String and vv.downcase.index(a.downcase) != nil
+                possible_matches[k] = PholdersUtils.update_count possible_matches, k, nil, nil
+
+              #special handle Apps
+              elsif vk == :apps and vv.kind_of? Hash and vv.keys.count > 0
+                vv.each { |appK, appV| 
+                  DebugUtils.debug_line "examining APPss #{a} => BundleId #{appK}"
+                  if appK.downcase.index(a.downcase) != nil
+                    sandbox = nil
+                    sandbox = appV['compatibilityInfo']['sandboxPath'] if appV['compatibilityInfo']
+                    possible_matches[k] = PholdersUtils.update_count possible_matches, k, appK, sandbox
+                  end
+                }
+              end
+            }
+          } 
+        }
+
+        possible_matches = possible_matches.sort_by {|k,v| v[:count_so_far]}.reverse
+        DebugUtils.debug_line "possible matches #{possible_matches}"
+
+        DebugUtils.result_line "\nOpening Simulator with highest match for input arguments: #{args}"
+        possible_matches.each { |match|
+          # DebugUtils.debug_line "examining match #{match.class} #{match}"
+          v = new_sims[match.first]
+          DebugUtils.result_line "\n#{v[:type]} Simulator - #{v[:name]} (#{v[:runtime]})"
+          # highest match does not have sandbox
+          if match.last[:sandboxPath] == nil or not File.exist? match.last[:sandboxPath]
+            if v[:apps].keys.count > 0
+              open_at_least_one = false
+              DebugUtils.error_line "Could not pinpoint an specific App, so opening all Apps for this simulator, if possible..."
+              DebugUtils.debug_line "any apps ? #{v[:apps].keys} "
+              v[:apps].each { |some_app_bundle, some_app_info|
+                if some_app_info['compatibilityInfo'] and File.exist? some_app_info['compatibilityInfo']['sandboxPath']
+                  DebugUtils.result_line "\n    BundleId....: #{some_app_bundle}"
+                  DebugUtils.result_line "    SandBox Path: #{some_app_info['compatibilityInfo']['sandboxPath']}"
+                  `open "#{some_app_info['compatibilityInfo']['sandboxPath']}"`
+                  open_at_least_one = true
+                end
+              }
+              break if open_at_least_one
+            else
+              DebugUtils.error_line "Sorry, could not find any app on this simulator. Trying the next one..."
+            end
+          else
+            DebugUtils.result_line "    BundleId....: #{match.last[:bundleId]}"
+            DebugUtils.result_line "    SandBox Path: #{match.last[:sandboxPath]}"
+            `open "#{match.last[:sandboxPath]}"`
+            break
+          end
+        }
 
       end #else no apps
     end #else xcode
