@@ -75,7 +75,7 @@ $ ./pholders.rb open ipad 7
 
 - Open iPhone 8 apps 
 ```
-$ ./pholders.rb open ipad 8
+$ ./pholders.rb open phone 8
 ```
 
 - Open apps with specific **BundleId** 
